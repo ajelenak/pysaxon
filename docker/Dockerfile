@@ -1,7 +1,7 @@
 # Dockerfile for PySaxon development work
 FROM python:latest
 
-MAINTAINER Aleksandar Jelenak "aleksandar.jelenak@gmail.com"
+MAINTAINER Aleksandar Jelenak "aleksandar dot jelenak at gmail dot com"
 
 USER root
 
@@ -67,11 +67,11 @@ RUN mkdir /opt/saxon-HEC-v1.0.0 \
     && ln -s /opt/saxon-HEC-v1.0.0/rt /usr/lib/rt
 ENV LD_LIBRARY_PATH=/opt/saxon-HEC-v1.0.0/rt/lib/amd64:$LD_LIBRARY_PATH
 
-# Create a python virtualenv for development work
-RUN mkdir /opt/pysaxon/pysaxon \
-    && pyvenv --system-site-packages --without-pip /opt/pysaxon
-
 # Make a volume for pysaxon dev environment
+RUN mkdir -p /opt/pysaxon
 VOLUME /opt/pysaxon
+
+# Point to Saxon/C installation directory
+ENV SAXONC_HOME=/opt/saxon-HEC-v1.0.0
 
 CMD ["/bin/bash"]
