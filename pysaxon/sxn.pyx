@@ -94,15 +94,14 @@ cdef class SaxonProcessor:
             self.thisptr = new decls.SaxonProcessor(conf_file)
         elif isinstance(what, bool):
             self.thisptr = new decls.SaxonProcessor(<bint>what)
-        elif what is None:
-            self.thisptr = new decls.SaxonProcessor()
+        # elif what is None:
+        #     self.thisptr = new decls.SaxonProcessor()
         else:
             raise TypeError('SaxonProcessor cannot be initialized with: %s'
                             % what)
 
     def __dealloc__(self):
         self.thisptr.release()
-        del self.thisptr
 
     property exception:
         def __get__(self):
