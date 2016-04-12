@@ -95,7 +95,7 @@ cdef extern from "XdmNode.h":
 cdef extern from "XdmAtomicValue.h":
     cdef cppclass XdmAtomicValue:
         XdmAtomicValue() except +
-        XdmAtomicValue(const XdmAtomicValue *d) except +
+        XdmAtomicValue(const XdmAtomicValue &d) except +
         string getPrimitiveTypeName() except +
         int getBooleanValue() except +
         double getDoubleValue() except +

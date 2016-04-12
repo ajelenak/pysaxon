@@ -2,7 +2,6 @@
 SaxonProcessor."""
 from libcpp.string cimport string
 cimport cython
-cimport decls
 
 
 @cython.final       # not subclassable
@@ -10,7 +9,7 @@ cimport decls
 cdef class MyException:
     """MyException extension type"""
 
-    cdef decls.MyException e
+    cdef cpp.MyException e
 
     property errorCode:
         def __get__(self):
@@ -34,15 +33,15 @@ cdef class MyException:
         def __get__(self):
             return self.e.linenumber
 
-    property is_type:
+    property isType:
         def __get__(self):
             return <bint>self.e.isType
 
-    property is_static:
+    property isStatic:
         def __get__(self):
             return <bint>self.e.isStatic
 
-    property is_global:
+    property isGlobal:
         def __get__(self):
             return <bint>self.e.isGlobal
 
@@ -52,7 +51,7 @@ cdef class MyException:
 cdef class SaxonApiException:
     """Saxon API Exception extension type."""
 
-    cdef decls.SaxonApiException *thisptr
+    cdef cpp.SaxonApiException *thisptr
 
     def __cinit__(self):
         self.thisptr = NULL
@@ -64,7 +63,7 @@ cdef class SaxonApiException:
     def __copy__(self):
         cdef SaxonApiException e
         e = SaxonApiException()
-        e.thisptr = new decls.SaxonApiException(self.thisptr[0])
+        e.thisptr = new cpp.SaxonApiException(self.thisptr[0])
         return e
 
     def clear(self):
@@ -84,18 +83,16 @@ cdef class SaxonApiException:
 cdef class SaxonProcessor:
     """SaxonProcessor extension type."""
 
-    cdef decls.SaxonProcessor *thisptr
-
     def __cinit__(self, what=None):
         cdef char *conf_file
 
         if isinstance(what, bytes):
             conf_file = what
-            self.thisptr = new decls.SaxonProcessor(conf_file)
+            self.thisptr = new cpp.SaxonProcessor(conf_file)
         elif isinstance(what, bool):
-            self.thisptr = new decls.SaxonProcessor(<bint>what)
+            self.thisptr = new cpp.SaxonProcessor(<bint>what)
         # elif what is None:
-        #     self.thisptr = new decls.SaxonProcessor()
+        #     self.thisptr = new cpp.SaxonProcessor()
         else:
             raise TypeError('SaxonProcessor cannot be initialized with: %s'
                             % what)
@@ -103,33 +100,33 @@ cdef class SaxonProcessor:
     def __dealloc__(self):
         self.thisptr.release()
 
-    property exception:
+    property exceptionOccurred:
         def __get__(self):
             return <bint>self.thisptr.exceptionOccurred()
 
-    def exception_clear(self):
+    def exceptionClear(self):
         self.thisptr.exceptionClear()
 
-    def get_exception(self):
+    def getException(self):
         cdef SaxonApiException e
         e = SaxonApiException()
         e.thisptr = self.thisptr.getException()
         return e
 
-    def set_cwd(self, char* cwd):
+    def setcwd(self, char* cwd):
         self.thisptr.setcwd(cwd)
 
-    property resources_directory:
+    property resourcesDirectory:
         def __get__(self):
             return self.thisptr.getResourcesDirectory()
 
         def __set__(self, char* dir):
             self.thisptr.setResourcesDirectory(dir)
 
-    def set_configuration_property(self, char* name, char* value):
+    def setConfigurationProperty(self, char* name, char* value):
         self.thisptr.setConfigurationProperty(name, value)
 
-    def clear_configuration_property(self):
+    def clearConfigurationProperties(self):
         self.thisptr.clearConfigurationProperties()
 
     def version(self):

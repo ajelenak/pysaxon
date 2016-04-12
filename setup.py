@@ -145,7 +145,7 @@ def localpath(*args):
 
 def extensions():
     # List of Cython implementation files (without file extension)...
-    modules = ['sxn']
+    modules = ['sxn', 'xdm']
 
     # Get home directories for Java and Saxon/C...
     saxonhome = os.environ.get('SAXONC_HOME')
