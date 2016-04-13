@@ -21,19 +21,23 @@ UNKNOWN = cpp.UNKNOWN
 cdef class Value:
     """XdmValue extension type."""
 
-    def __cinit__(self, SaxonProcessor p=None):
-        cdef cpp.SaxonProcessor *ptr
-        self._size = 0
-        self._cntr = 0
-        if p is None:
-            self.thisptr = new cpp.XdmValue()
-        else:
-            ptr = p.thisptr
-            self.thisptr = new cpp.XdmValue(ptr)
+    # def __cinit__(self, SaxonProcessor p=None):
+    #     cdef cpp.SaxonProcessor *ptr
+    #     self._size = 0
+    #     self._cntr = 0
+    #     if p is None:
+    #         self.thisptr = new cpp.XdmValue()
+    #     else:
+    #         ptr = p.thisptr
+    #         self.thisptr = new cpp.XdmValue(ptr)
+
+    def __cinit__(self):
+        self.thisptr = NULL
 
     def __dealloc__(self):
-        self.thisptr.releaseXdmValue()
-        del self.thisptr
+        if self.thisptr != NULL:
+            self.thisptr.releaseXdmValue()
+            del self.thisptr
 
     property type:
         def __get__(self):
@@ -88,10 +92,12 @@ cdef class Item:
     """XdmItem extension type."""
 
     def __cinit__(self):
-        self.thisptr = new cpp.XdmItem()
+        # self.thisptr = new cpp.XdmItem()
+        self.thisptr = NULL
 
     def __dealloc__(self):
-        del self.thisptr
+        if self.thisptr != NULL:
+            del self.thisptr
 
     property type:
         def __get__(self):
