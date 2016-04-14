@@ -175,8 +175,12 @@ cdef class AtomicValue:
 cdef class Node:
     """XdmNode extension type."""
 
+    def __cinit__(self):
+        self.thisptr = NULL
+
     def __dealloc__(self):
-        del self.thisptr
+        if self.thisptr:
+            del self.thisptr
 
     property isAtomic:
         def __get__(self):

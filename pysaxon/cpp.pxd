@@ -32,7 +32,10 @@ cdef extern from "SaxonProcessor.h":
         void setConfigurationProperty(const char * name, const char * value) except +
         void clearConfigurationProperties() except +
         const char* version() except +
-        XPathProcessor *newXPathProcessor() except +
+        XPathProcessor* newXPathProcessor() except +
+        XdmNode* parseXmlFromString(const char* source)
+        XdmNode* parseXmlFromFile(const char* source)
+        XdmNode* parseXmlFromUri(const char* source)
 
 cdef extern from "XdmValue.h":
     ctypedef enum XDM_TYPE:

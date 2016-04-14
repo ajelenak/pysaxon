@@ -3,7 +3,7 @@ SaxonProcessor."""
 from libcpp.string cimport string
 from libcpp.map cimport map
 cimport cython
-from .xdm cimport Value, Item
+from .xdm cimport Value, Item, Node
 
 
 @cython.final       # not subclassable
@@ -132,7 +132,29 @@ cdef class SaxonProcessor:
         self.thisptr.clearConfigurationProperties()
 
     def version(self):
+        """Get the Saxon version."""
         return self.thisptr.version()
+
+    def parseXmlFromString(self, char *xml):
+        """Parse a lexical representation of the source document and return it
+        as a Node object.
+        """
+        cdef Node n = Node()
+        n.thisptr = self.thisptr.parseXmlFromString(xml)
+        return n
+
+    def parseXmlFromFile(self, char *xmlfile):
+        """Parse a source document file and return it as a Node object."""
+        cdef Node n = Node()
+        n.thisptr = self.thisptr.parseXmlFromFile(xmlfile)
+        return n
+
+    def parseXmlFromUri(self, char *uri):
+        """Parse a source document available by URI and return it as a Node
+        object."""
+        cdef Node n = Node()
+        n.thisptr = self.thisptr.parseXmlFromUri(uri)
+        return n
 
     def newXPathProcessor(self):
         """Create an XPathProcessor.
