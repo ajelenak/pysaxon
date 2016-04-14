@@ -1,14 +1,15 @@
 """Declare MyException, SaxonApiException, and SaxonProcessor."""
 from libcpp.string cimport string
+from libcpp.map cimport map
 
 cdef extern from "SaxonProcessor.h":
     ctypedef struct MyException:
         string errorCode
         string errorMessage
         int linenumber
-        int isType
-        int isStatic
-        int isGlobal
+        bint isType
+        bint isStatic
+        bint isGlobal
 
     cdef cppclass SaxonApiException:
         SaxonApiException() except +
@@ -31,6 +32,7 @@ cdef extern from "SaxonProcessor.h":
         void setConfigurationProperty(const char * name, const char * value) except +
         void clearConfigurationProperties() except +
         const char* version() except +
+        XPathProcessor *newXPathProcessor() except +
 
 cdef extern from "XdmValue.h":
     ctypedef enum XDM_TYPE:
@@ -104,3 +106,29 @@ cdef extern from "XdmAtomicValue.h":
         void setType(string ty) except +
         int isAtomic()
         XDM_TYPE getType() except +
+
+cdef extern from "XPathProcessor.h":
+    cdef cppclass XPathProcessor:
+        XPathProcessor() except +
+        XPathProcessor(SaxonProcessor* proc, string cwd) except +
+        void setBaseURI(const char *uriStr) except +
+        XdmValue* evaluate(const char *xpathStr) except +
+        XdmItem* evaluateSingle(const char *xpathStr) except +
+        void setContextItem(XdmItem *item) except +
+        void setcwd(const char* cwd) except +
+        void setContextFile(const char *filename) except +
+        bint effectiveBooleanValue(const char *xpathStr) except +
+        void setParameter(const char *name, XdmValue *value) except +
+        bint removeParameter(const char *name) except +
+        void setProperty(const char *name, const char *value) except +
+        void declareNamespace(const char *prefix, const char *uri) except +
+        map[string,XdmValue*]& getParameters() except +
+        map[string,string]& getProperties() except +
+        void clearParameters(bint deleteValues) except +
+        void clearProperties() except +
+        bint exceptionOccurred() except +
+        void exceptionClear() except +
+        int exceptionCount() except +
+        const char* getErrorMessage(int i) except +
+        const char* getErrorCode(int i) except +
+        const char* checkException() except +
