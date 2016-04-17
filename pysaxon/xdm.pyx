@@ -48,6 +48,10 @@ cdef class Value:
         def __set__(self, SaxonProcessor p not None):
             self.thisptr.setProcessor(p.thisptr)
 
+    property size:
+        def __get__(self):
+            return self.thisptr.size()
+
     def getHead(self):
         """Get the first item in the sequence.
 
@@ -62,6 +66,14 @@ cdef class Value:
             i = Item()
             i.thisptr = iptr
             return i
+
+    def itemAt(self, int n):
+        cdef Item it = Item()
+        cdef int size = self.size
+        if n > size:
+            raise ValueError('There are only %d items' % size)
+        it.thisptr = self.thisptr.itemAt(n)
+        return it
 
     def checkFailures(self):
         cdef char *temp
@@ -78,7 +90,7 @@ cdef class Value:
         return self
 
     def __next__(self):
-        """Get the n'th item in the value's sequence, counting from zero."""
+        """Get the value's items sequentially from the first one."""
         if self._cntr >= self._size:
             raise StopIteration
         cdef Item it
