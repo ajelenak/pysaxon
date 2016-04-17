@@ -165,6 +165,15 @@ cdef class SaxonProcessor:
         xp.thisptr = self.thisptr.newXPathProcessor()
         return xp
 
+    def newXsltProcessor(self):
+        """Create an XsltProcessor.
+
+        An XsltProcessor is used to compile XSLT stylesheets.
+        """
+        cdef XsltProcessor xsl = XsltProcessor()
+        xsl.thisptr = self.thisptr.newXsltProcessor()
+        return xsl
+
 
 cdef class XPathProcessor:
     """XPathProcessor extension type."""
@@ -251,10 +260,6 @@ cdef class XPathProcessor:
         """Remove a parameter named ``name``."""
         return <bint>self.thisptr.removeParameter(name)
 
-    def clearParameters(self, deleteValues=False):
-        """Clear parameter values set."""
-        self.thisptr.clearParameters(<bint>deleteValues)
-
     property parameters:
         def __get__(self):
             """Get all parameters as a dictionary of names (string) and
@@ -263,11 +268,16 @@ cdef class XPathProcessor:
             cdef params = {}
             cdef map[string, cpp.XdmValue*] m
             cdef Value v
+            m = self.thisptr.getParameters()
             for it in m:
                 v = Value()
                 v.thisptr = it.second
                 params[it.first] = v
             return params
+
+        def __del__(self):
+            """Clear parameter values set."""
+            self.thisptr.clearParameters(<bint>1)
 
     def setProperty(self, char *name, char *value):
         """Set a property specific to the processor in use.
@@ -277,24 +287,20 @@ cdef class XPathProcessor:
         """
         self.thisptr.setProperty(name, value)
 
-    def clearProperties(self):
-        """Clear property values set."""
-        self.thisptr.clearProperties()
-
     property properties:
         def __get__(self):
             """Get all properties as a dictionary."""
             return self.thisptr.getProperties()
+
+        def __del__(self):
+            """Clear property values set."""
+            self.thisptr.clearProperties()
 
     def exceptionOccurred(self):
         """Check for pending exceptions without creating a local reference to
         the exception object.
         """
         return <bint>self.thisptr.exceptionOccurred()
-
-    def exceptionClear(self):
-        """Clear any exception thrown."""
-        self.thisptr.exceptionClear()
 
     property exceptions:
         def __get__(self):
@@ -323,3 +329,188 @@ cdef class XPathProcessor:
                 errors.append(mye)
 
             return errors
+
+        def __del__(self):
+            """Clear any exception thrown."""
+            self.thisptr.exceptionClear()
+
+
+cdef class XsltProcessor:
+    """XsltProcessor extension type."""
+
+    def __cinit__(self):
+        self.thisptr = NULL
+
+    def __dealloc__(self):
+        if self.thisptr:
+            self.thisptr.releaseStylesheet()
+            del self.thisptr
+
+    def setcwd(self, char *cwd):
+        """Set the current working directory to ``cwd``."""
+        self.thisptr.setcwd(cwd)
+
+    property parameters:
+        def __get__(self):
+            """Get all parameters as a dictionary of names (string) and
+            xdm.Value objects.
+            """
+            cdef params = {}
+            cdef map[string, cpp.XdmValue*] m
+            cdef Value v
+            m = self.thisptr.getParameters()
+            for it in m:
+                v = Value()
+                v.thisptr = it.second
+                params[it.first] = v
+            return params
+
+        def __del__(self):
+            """Clear parameter values set."""
+            self.thisptr.clearParameters(<bint>1)
+
+    property properties:
+        def __get__(self):
+            """Get all properties as a dictionary."""
+            return self.thisptr.getProperties()
+
+        def __del__(self):
+            """Clear property values set."""
+            self.thisptr.clearProperties()
+
+    def setSourceFromXdmValue(self, Item val):
+        """Set the source document from a xdm.Item object for the
+        transformation."""
+        self.thisptr.setSourceFromXdmValue(val.thisptr)
+
+    def setSourceFromFile(self, char *filename):
+        """Set the source from file for the transformation."""
+        self.thisptr.setSourceFromFile(filename)
+
+    def setOutputFile(self, char *filename):
+        """Set the output file of where the transformation result is sent."""
+        self.thisptr.setOutputFile(filename)
+
+    property xslMessages:
+        def __get__(self):
+            """Get the messages written using the ``xsl:message`` instruction
+            as an xdm.Value object.
+            """
+            cdef Value v = Value()
+            v.thisptr = self.thisptr.getXslMessages()
+            return v
+
+    def transformFileToFile(self, char* source, char *out, xslt=None):
+        """Perform a one shot transformation from a file to a file.
+
+        :arg bytes source: Source document file name.
+        :arg bytes out: File name where to store the transformation's result.
+        :arg bytes xslt: XSLT file name. If None, the most recently compiled
+            stylesheet is used.
+        """
+        cdef char *xslt_c = NULL
+        if xslt is not None:
+            xslt_c = xslt
+        self.thisptr.transformFileToFile(source, xslt_c, out)
+
+    def transformFileToString(self, char *source, xslt=None):
+        """Perform a one shot transformation from a file to a string.
+
+        :arg bytes source: Source document file name.
+        :arg bytes xslt: XSLT file name. If None, the most recently compiled
+            stylesheet is used.
+        """
+        cdef char *xslt_c = NULL
+        if xslt is not None:
+            xslt_c = xslt
+        return self.thisptr.transformFileToString(source, xslt_c)
+
+    def transformFileToValue(self, char *source, xslt=None):
+        """Perform a one shot transformation from a file to an xdm.Value.
+
+        :arg bytes source: Source document file name.
+        :arg bytes xslt: XSLT file name. If None, the most recently compiled
+            stylesheet is used.
+        """
+        cdef char *xslt_c = NULL
+        cdef Value v = Value()
+        if xslt is not None:
+            xslt_c = xslt
+        v.thisptr = self.thisptr.transformFileToValue(source, xslt_c)
+        return v
+
+    def compileFromFile(self, char *xslt):
+        """Compile a stylesheet stored in a file.
+
+        :arg bytes xslt: XSLT file name.
+        """
+        self.thisptr.compileFromFile(xslt)
+
+    def compileFromString(self, char *xslt):
+        """Compile a stylesheet stored in a string.
+
+        :arg bytes xslt: XSLT content.
+        """
+        self.thisptr.compileFromString(xslt)
+
+    def compileFromXdmNode(self, Node n not None):
+        """Compile a stylesheet stored in an xdm.Node."""
+        self.thisptr.compileFromXdmNode(n.thisptr)
+
+    def transformToString(self):
+        """Perform the transformation based upon what has been cached and
+        return the result as a bytes object.
+        """
+        return self.thisptr.transformToString()
+
+    def transformToValue(self):
+        """Perform the transformation based upon what has been cached and
+        return the result as an xdm.Value object.
+        """
+        cdef Value v = Value()
+        v.thisptr = self.thisptr.transformToValue()
+        return v
+
+    def transformToFile(self):
+        """Perform the transformation based upon what has been cached and
+        return the result in a file.
+        """
+        self.thisptr.transformToFile()
+
+    def exceptionOccurred(self):
+        """Check for pending exceptions without creating a local reference to
+        the exception object.
+        """
+        return <bint>self.thisptr.exceptionOccurred()
+
+    property exceptions:
+        def __get__(self):
+            """Get exception error messages and their codes as a list of
+            MyException objects or None.
+            """
+            cdef MyException mye
+            cdef list errors = []
+            cdef int count, i
+
+            if not self.thisptr.exceptionOccurred():
+                return None
+
+            count = self.thisptr.exceptionCount()
+            if count == 0:
+                return None
+
+            for i in range(count):
+                mye = MyException()
+                mye.e.errorCode.assign(self.thisptr.getErrorCode(i))
+                mye.e.errorMessage.assign(self.thisptr.getErrorMessage(i))
+                mye.e.linenumber = -1
+                mye.e.isType = 1
+                mye.e.isGlobal = 1
+                mye.e.isStatic = 1
+                errors.append(mye)
+
+            return errors
+
+        def __del__(self):
+            """Clear any exception thrown."""
+            self.thisptr.exceptionClear()

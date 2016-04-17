@@ -33,9 +33,11 @@ cdef extern from "SaxonProcessor.h":
         void clearConfigurationProperties() except +
         const char* version() except +
         XPathProcessor* newXPathProcessor() except +
-        XdmNode* parseXmlFromString(const char* source)
-        XdmNode* parseXmlFromFile(const char* source)
-        XdmNode* parseXmlFromUri(const char* source)
+        XsltProcessor* newXsltProcessor() except +
+        SchemaValidator* newSchemaValidator() except +
+        XdmNode* parseXmlFromString(const char* source) except +
+        XdmNode* parseXmlFromFile(const char* source) except +
+        XdmNode* parseXmlFromUri(const char* source) except +
 
 cdef extern from "XdmValue.h":
     ctypedef enum XDM_TYPE:
@@ -135,3 +137,43 @@ cdef extern from "XPathProcessor.h":
         const char* getErrorMessage(int i) except +
         const char* getErrorCode(int i) except +
         const char* checkException() except +
+
+cdef extern from "XsltProcessor.h":
+    cdef cppclass XsltProcessor:
+        XsltProcessor() except +
+        XsltProcessor(SaxonProcessor* proc, string cwd) except +
+        void setcwd(const char* cwd) except +
+        void setSourceFromXdmValue(XdmItem *value) except +
+        void setSourceFromFile(const char *filename) except +
+        void setOutputFile(const char *outfile) except +
+        void setParameter(const char *name, XdmValue *value) except +
+        XdmValue* getParameter(const char *name) except +
+        bint removeParameter(const char *name) except +
+        void setProperty(const char* name, const char* value) except +
+        const char* getProperty(const char* name) except +
+        map[string,XdmValue*]& getParameters() except +
+        map[string,string]& getProperties() except +
+        void clearParameters(bint deleteValues) except +
+        void clearProperties() except +
+        XdmValue* getXslMessages() except +
+        void transformFileToFile(const char* sourcefile, const char* stylesheetfile, const char* outputfile) except +
+        const char* transformFileToString(const char* sourcefile, const char* stylesheetfile) except +
+        XdmValue* transformFileToValue(const char* sourcefile, const char* stylesheetfile)
+        void compileFromFile(const char *stylesheet)
+        void compileFromString(const char *stylesheet)
+        void compileFromXdmNode(XdmNode *node)
+        void releaseStylesheet()
+        const char* transformToString()
+        XdmValue* transformToValue()
+        void transformToFile()
+        bint exceptionOccurred()
+        const char* checkException()
+        void exceptionClear()
+        int exceptionCount()
+        const char* getErrorMessage(int i)
+        const char* getErrorCode(int i)
+        SaxonProcessor* getSaxonProcessor()
+
+cdef extern from "SchemaValidator.h":
+    cdef cppclass SchemaValidator:
+        pass

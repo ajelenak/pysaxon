@@ -5,3 +5,6 @@ cdef class SaxonProcessor:
 
 cdef class XPathProcessor:
     cdef cpp.XPathProcessor *thisptr
+
+cdef class XsltProcessor:
+    cdef cpp.XsltProcessor *thisptr
