@@ -59,19 +59,20 @@ RUN pip3 install --upgrade pip \
 
 # Install the Saxon/C HE library. The install file must first be downloaded from
 # http://www.saxonica.com/saxon-c/index.xml#download and unzipped.
-COPY libsaxon-HEC-setup64-v1.0.0 /opt/
-RUN mkdir /opt/saxon-HEC-v1.0.0 \
-    && printf "/opt/saxon-HEC-v1.0.0\n" | /opt/libsaxon-HEC-setup64-v1.0.0 \
-    && rm /opt/libsaxon-HEC-setup64-v1.0.0 \
-    && ln -s /opt/saxon-HEC-v1.0.0/libsaxonhec.so /usr/lib/ \
-    && ln -s /opt/saxon-HEC-v1.0.0/rt /usr/lib/rt
-ENV LD_LIBRARY_PATH=/opt/saxon-HEC-v1.0.0/rt/lib/amd64:$LD_LIBRARY_PATH
+COPY libsaxon-HEC-setup64-v1.0.1 /opt/
+RUN mkdir /opt/saxon-HEC-v1.0.1 \
+    && printf "/opt/saxon-HEC-v1.0.1\n" | /opt/libsaxon-HEC-setup64-v1.0.1 \
+    && rm /opt/libsaxon-HEC-setup64-v1.0.1 \
+    && ln -s /opt/saxon-HEC-v1.0.1/libsaxonhec.so /usr/lib/ \
+    && ln -s /opt/saxon-HEC-v1.0.1/rt /usr/lib/rt \
+    && ln -s /opt/saxon-HEC-v1.0.1/saxon-data /usr/lib
+ENV LD_LIBRARY_PATH=/opt/saxon-HEC-v1.0.1/rt/lib/amd64:$LD_LIBRARY_PATH
 
 # Make a volume for pysaxon dev environment
 RUN mkdir -p /opt/pysaxon
 VOLUME /opt/pysaxon
 
 # Point to Saxon/C installation directory
-ENV SAXONC_HOME=/opt/saxon-HEC-v1.0.0
+ENV SAXONC_HOME=/opt/saxon-HEC-v1.0.1
 
 CMD ["/bin/bash"]
