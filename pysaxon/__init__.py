@@ -4,5 +4,10 @@ from .version import version as __version__
 try:
     from .sxn import *
     from . import xdm
+
+    # This SaxonProcessor object is used only to control creation and
+    # destruction of the Saxon/C Java VM...
+    _sp_init = SaxonProcessor(False, init=True)
+
 except ImportError:
     pass

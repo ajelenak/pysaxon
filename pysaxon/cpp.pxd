@@ -21,7 +21,7 @@ cdef extern from "SaxonProcessor.h":
     cdef cppclass SaxonProcessor:
         SaxonProcessor() except +
         SaxonProcessor(const char *configFile) except +
-        SaxonProcessor(int l) except +
+        SaxonProcessor(bint l) except +
         int exceptionOccurred() except +
         void exceptionClear() except +
         SaxonApiException* getException() except +

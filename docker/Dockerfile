@@ -55,7 +55,7 @@ ENV DOCKERFILE_LAST_UPDATED 2016-03-25
 
 # Install required Python modules
 RUN pip3 install --upgrade pip \
-    && pip3 install cython nose six jupyter-console
+    && pip3 install cython pytest six jupyter-console
 
 # Install the Saxon/C HE library. The install file must first be downloaded from
 # http://www.saxonica.com/saxon-c/index.xml#download and unzipped.

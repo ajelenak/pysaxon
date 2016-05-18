@@ -2,12 +2,9 @@ from __future__ import print_function, unicode_literals
 import os
 import sys
 import os.path as osp
-# import json
 from functools import reduce
-# from datetime import datetime as dt
-from setuptools import setup, Extension  # ,Command
-# from setuptools.command.build_ext import build_ext
-# from distutils.command.build import build
+from setuptools import setup, Extension  # , Command
+from setuptools.command.test import test
 from Cython.Build import cythonize
 from pysaxon import __version__ as VERSION
 
@@ -17,130 +14,6 @@ def localpath(*args):
     reference.
     """
     return osp.abspath(reduce(osp.join, (osp.dirname(__file__),) + args))
-
-
-# class configure(Command):
-#     """Configure build options for PySaxon."""
-#     _conf_file = localpath('config.json')
-#     description = 'Configure pysaxon build options'
-#     user_options = [('saxonhome=', 's', 'Saxon HE/C install directory'),
-#                     ('javahome=', 'j', 'Java home directory')]
-
-#     def initialize_options(self):
-#         # Remove the old configuration file...
-#         try:
-#             os.unlink(self._conf_file)
-#         except Exception:
-#             pass
-
-#         self.saxonhome = os.environ.get('SAXONC_HOME')
-#         self.javahome = os.environ.get('JAVA_HOME')
-
-#     def finalize_options(self):
-#         for n, e in enumerate((self.saxonhome, self.javahome)):
-#             if e:
-#                 if not osp.isdir(e):
-#                     raise ValueError('%s is not a directory' % e)
-#             else:
-#                 raise ValueError('%s unknown' % configure.user_options[n])
-
-#     def run(self):
-#         # Determine location of the Saxon library file...
-#         check_lib = list()
-#         libsaxon = 'libsaxonhec.so'
-#         if self.saxonhome is None:
-#             raise ValueError('What is Saxon HE/C install directory?')
-
-#         # Look for libsaxon file in these directories...
-#         if os.name != 'posix':
-#             raise NotImplementedError(
-#                 'Non-POSIX operating systems not supported yet')
-
-#         # Create expected library file paths to check...
-#         dirs = ['/usr/lib', self.saxonhome]
-#         for d in dirs:
-#             check_lib.append(osp.join(d, libsaxon))
-
-#         # Verify one of the options where the libsaxon file is...
-#         for l in check_lib:
-#             if osp.isfile(l):
-#                 break
-#         else:
-#             raise ValueError('%s file not found in %s' % (libsaxon, check_lib))
-
-#         # Save configuration in the config.json file...
-#         conf = {'last_run': dt.utcnow().timestamp(),
-#                 'saxon_home': self.saxonhome,
-#                 'java_home': self.javahome}
-#         with open(self._conf_file, 'w') as f:
-#             print('Saving configuration in file "%s"' % f.name)
-#             json.dump(conf, f)
-
-#         print('Summary of PySaxon configuration')
-#         print('    Saxon home is: %s' % self.saxonhome)
-#         print('    Java home is: %s' % self.javahome)
-
-
-# class sxn_build_ext(build_ext):
-#     """Custom build command incorporating cythonization, compilation and
-#     linking.
-#     """
-#     def run(self):
-#         # List of Cython implementation files (without file extension)...
-#         modules = ['sxn']
-
-#         # Get home directories for Java and Saxon/C...
-#         config = self.distribution.get_command_obj('configure')
-#         config.run()
-
-#         # Compiler settings...
-#         settings = {
-#             'libraries': ['saxonhec'],
-#             'include_dirs': [osp.join(config.saxonhome, 'Saxon.C.API'),
-#                              osp.join(config.javahome, 'include')],
-#             'library_dirs': [config.saxonhome, '/usr/lib']
-#         }
-#         if sys.platform.startswith('linux'):
-#             settings['include_dirs'].append(
-#                 osp.join(config.javahome, 'include', 'linux'))
-#         else:
-#             raise NotImplemented(sys.platform, 'not supported yet')
-
-#         # See: http://stackoverflow.com/q/19123623
-#         if os.name != 'nt':
-#             settings['runtime_library_dirs'] = settings['library_dirs']
-
-#         # Additional source files required...
-#         addl_src = ['SaxonCGlue.c', 'SaxonCXPath.c', 'XdmValue.cpp',
-#                     'XdmItem.cpp', 'XdmNode.cpp', 'XdmAtomicValue.cpp',
-#                     'SaxonProcessor.cpp', 'XsltProcessor.cpp',
-#                     'XQueryProcessor.cpp', 'XPathProcessor.cpp',
-#                     'SchemaValidator.cpp']
-#         for n in range(len(addl_src)):
-#             addl_src[n] = osp.join(config.saxonhome, 'Saxon.C.API',
-#                                    addl_src[n])
-#             if not osp.isfile(addl_src[n]):
-#                 raise IOError('"%s" file not found' % addl_src[n])
-
-#         extensions = list()
-#         for m in modules:
-#             pyx_src = localpath('pysaxon', m+'.pyx')
-#             extensions.append(Extension('pysaxon.'+m, [pyx_src]+addl_src,
-#                                         **settings))
-
-#         # Do the build...
-#         build_ext.run(self)
-
-
-# class sxn_build(build):
-#     """Simple class to ensure "setup.py build_ext" command is triggered.
-
-#     For some reason with "setup.py build" does not run the build_ext
-#     command.
-#     """
-#     def run(self):
-#         self.run_command('build_ext')
-#         build.run(self)
 
 
 def extensions():
@@ -182,11 +55,41 @@ def extensions():
 
     exts = list()
     for m in modules:
-        pyx_src = localpath('pysaxon', m+'.pyx')
-        exts.append(Extension('pysaxon.'+m, [pyx_src]+addl_src, language='c++',
-                              **settings))
+        pyx_src = localpath('pysaxon', m + '.pyx')
+        exts.append(Extension('pysaxon.' + m, [pyx_src] + addl_src,
+                              language='c++', **settings))
 
     return cythonize(exts)
+
+
+class sxn_test(test):
+    """Custom setuptools test command using py.test."""
+    description = 'Options for py.test command'
+    user_options = [('pytest-opts=', 'a', 'Options to pass to py.test')]
+
+    def initialize_options(self):
+        self.pytest_opts = []
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import pytest
+        import _pytest.main
+
+        # Customize messages for pytest exit codes...
+        msg = {_pytest.main.EXIT_OK: 'OK',
+               _pytest.main.EXIT_TESTSFAILED: 'Tests failed',
+               _pytest.main.EXIT_INTERRUPTED: 'Interrupted',
+               _pytest.main.EXIT_INTERNALERROR: 'Internal error',
+               _pytest.main.EXIT_USAGEERROR: 'Usage error',
+               _pytest.main.EXIT_NOTESTSCOLLECTED: 'No tests collected'}
+
+        bldobj = self.distribution.get_command_obj('build')
+        bldobj.run()
+        exitcode = pytest.main(self.pytest_opts)
+        print(msg[exitcode])
+        sys.exit(exitcode)
 
 
 setup(
@@ -214,9 +117,8 @@ setup(
     # package_data = package_data,
     ext_modules=extensions(),
     install_requires=['six'],
-    setup_requires=['Cython>=0.20',
-                    'nose'],
-    # cmdclass={'configure': configure,
-    #           'build_ext': sxn_build_ext,
-    #           'build': sxn_build}
+    setup_requires=['Cython>=0.20', 'six'],
+    tests_require=['pytest', 'six'],
+    cmdclass={'test': sxn_test},
+    zip_safe=False
 )

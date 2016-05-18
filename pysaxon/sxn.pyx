@@ -82,11 +82,16 @@ cdef class SaxonApiException:
         return mye
 
 
+# Global boolean flag indicating whether Saxon/C Java VM has started...
+cdef int _init = 0
+
+
 cdef class SaxonProcessor:
     """SaxonProcessor extension type."""
 
-    def __cinit__(self, what=None):
+    def __cinit__(self, what=None, init=False):
         cdef char *conf_file
+        global _init
 
         if isinstance(what, bytes):
             conf_file = what
@@ -98,9 +103,22 @@ cdef class SaxonProcessor:
         else:
             raise TypeError('SaxonProcessor cannot be initialized with: %s'
                             % what)
+        if not (init or _init):
+            raise RuntimeError(
+                'SaxonProcessor "init" object with never created')
+        elif init and _init:
+            raise RuntimeError('Only one "init" SaxonProcessor object allowed')
+        if init:
+            _init = 1
+            self._init = 1
+        else:
+            self._init = 0
 
     def __dealloc__(self):
-        self.thisptr.release()
+        global _init
+        if self._init == 1:
+            self.thisptr.release()
+        del self.thisptr
 
     property exceptionOccurred:
         def __get__(self):
@@ -131,9 +149,10 @@ cdef class SaxonProcessor:
     def clearConfigurationProperties(self):
         self.thisptr.clearConfigurationProperties()
 
-    def version(self):
+    property version:
         """Get the Saxon version."""
-        return self.thisptr.version()
+        def __get__(self):
+            return self.thisptr.version()
 
     def parseXmlFromString(self, char *xml):
         """Parse a lexical representation of the source document and return it
