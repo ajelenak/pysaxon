@@ -139,7 +139,7 @@ def test_create_config():
 
 def test_create_procs():
     """Create XPathProcessor, XsltProcessor from SaxonProcessor object"""
-    sp = SaxonProcessor(False)
+    sp = SaxonProcessor()
     xp = sp.newXPathProcessor()
     xsl = sp.newXsltProcessor()
     assert isinstance(xp, XPathProcessor)
@@ -149,12 +149,12 @@ def test_create_procs():
 def test_create_init():
     """Only one init SaxonProcessor object can exist"""
     with pytest.raises(RuntimeError):
-        sp = SaxonProcessor(True, init=True)
+        SaxonProcessor(init=True)
 
 
 def test_version():
     """SaxonProcessor version string content"""
-    sp = SaxonProcessor(True)
+    sp = SaxonProcessor()
     ver = sp.version
     assert isinstance(ver, six.binary_type)
     assert ver.startswith(b'Saxon-HE')

@@ -96,13 +96,9 @@ cdef class SaxonProcessor:
         if isinstance(what, bytes):
             conf_file = what
             self.thisptr = new cpp.SaxonProcessor(conf_file)
-        elif isinstance(what, bool):
-            self.thisptr = new cpp.SaxonProcessor(<bint>what)
-        # elif what is None:
-        #     self.thisptr = new cpp.SaxonProcessor()
         else:
-            raise TypeError('SaxonProcessor cannot be initialized with: %s'
-                            % what)
+            self.thisptr = new cpp.SaxonProcessor(<bint>bool(what))
+
         if not (init or _init):
             raise RuntimeError(
                 'SaxonProcessor "init" object with never created')
