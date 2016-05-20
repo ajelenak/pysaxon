@@ -119,6 +119,10 @@ cdef class Item:
         def __get__(self):
             return <bint>self.thisptr.isAtomic()
 
+    property size:
+        def __get__(self):
+            return <int>self.thisptr.size()
+
     def getHead(self):
         """Get the first item in the sequence.
 
