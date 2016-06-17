@@ -131,6 +131,10 @@ def test_create_config():
         os.close(fd)
         if not os.path.exists(fname):
             raise IOError('%s does not exist' % fname)
+
+        with open(fname, 'r') as f:
+            print(f.read())
+
         sp = SaxonProcessor(fname.encode('utf-8'))
         assert isinstance(sp, SaxonProcessor)
     finally:

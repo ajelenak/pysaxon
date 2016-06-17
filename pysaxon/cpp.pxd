@@ -40,6 +40,7 @@ cdef extern from "SaxonProcessor.h":
         XdmNode* parseXmlFromString(const_char* source) except +
         XdmNode* parseXmlFromFile(const_char* source) except +
         XdmNode* parseXmlFromUri(const_char* source) except +
+        const_char * getStringValue(XdmItem * item) except +
 
 cdef extern from "XdmValue.h":
     ctypedef enum XDM_TYPE:

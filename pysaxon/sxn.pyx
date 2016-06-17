@@ -3,7 +3,7 @@ SaxonProcessor."""
 from libcpp.string cimport string
 from libcpp.map cimport map
 cimport cython
-from .xdm cimport Value, Item, Node
+from .xdm cimport Value, Item, Node, make_item, make_node, print_ptr
 
 
 @cython.final       # not subclassable
@@ -101,7 +101,7 @@ cdef class SaxonProcessor:
 
         if not (init or _init):
             raise RuntimeError(
-                'SaxonProcessor "init" object with never created')
+                'SaxonProcessor "init" object never created')
         elif init and _init:
             raise RuntimeError('Only one "init" SaxonProcessor object allowed')
         if init:
@@ -112,6 +112,7 @@ cdef class SaxonProcessor:
 
     def __dealloc__(self):
         global _init
+
         if self._init == 1:
             self.thisptr.release()
         del self.thisptr
@@ -154,22 +155,22 @@ cdef class SaxonProcessor:
         """Parse a lexical representation of the source document and return it
         as a Node object.
         """
-        cdef Node n = Node()
-        n.thisptr = self.thisptr.parseXmlFromString(xml)
-        return n
+        cdef cpp.XdmNode *nptr = NULL
+        nptr = self.thisptr.parseXmlFromString(xml)
+        return make_node(nptr, b'or error')
 
     def parseXmlFromFile(self, char *xmlfile):
         """Parse a source document file and return it as a Node object."""
-        cdef Node n = Node()
-        n.thisptr = self.thisptr.parseXmlFromFile(xmlfile)
-        return n
+        cdef cpp.XdmNode *nptr = NULL
+        nptr = self.thisptr.parseXmlFromFile(xmlfile)
+        return make_node(nptr, b'or error')
 
     def parseXmlFromUri(self, char *uri):
         """Parse a source document available by URI and return it as a Node
         object."""
-        cdef Node n = Node()
-        n.thisptr = self.thisptr.parseXmlFromUri(uri)
-        return n
+        cdef cpp.XdmNode *nptr = NULL
+        nptr = self.thisptr.parseXmlFromUri(uri)
+        return make_node(nptr, b'or error')
 
     def newXPathProcessor(self):
         """Create an XPathProcessor.
@@ -178,6 +179,8 @@ cdef class SaxonProcessor:
         """
         cdef XPathProcessor xp = XPathProcessor(raw=True)
         xp.thisptr = self.thisptr.newXPathProcessor()
+        if xp.thisptr == NULL:
+            raise ValueError('Failed to create XsltProcessor object')
         return xp
 
     def newXsltProcessor(self):
@@ -187,7 +190,12 @@ cdef class SaxonProcessor:
         """
         cdef XsltProcessor xsl = XsltProcessor()
         xsl.thisptr = self.thisptr.newXsltProcessor()
+        if xsl.thisptr == NULL:
+            raise ValueError('Failed to create XsltProcessor object')
         return xsl
+
+    def getStringValue(self, Item it not None):
+        return self.thisptr.getStringValue(<cpp.XdmItem*>it.thisptr)
 
 
 cdef class XPathProcessor:
@@ -251,8 +259,9 @@ cdef class XPathProcessor:
         """Compile and evaluate an XPath expression. The result is expected to
         be a single xdm.Item.
         """
-        cdef Item it = Item()
-        it.thisptr = self.thisptr.evaluateSingle(xpath)
+        cdef cpp.XdmItem *iptr = NULL
+        iptr = self.thisptr.evaluateSingle(xpath)
+        return make_item(iptr, b'or error')
 
     def evaluate_bool(self, char *xpath):
         """Evaluate the XPath expression, returning the effective boolean value
@@ -261,7 +270,11 @@ cdef class XPathProcessor:
         return <bint>self.thisptr.effectiveBooleanValue(xpath)
 
     def setContextItem(self, Item it):
-        self.thisptr.setContextItem(it.thisptr)
+        cdef cpp.XdmItem *ptr
+        if not isinstance(it, (Item, Node)):
+            raise TypeError('Only xdm.Item or xdm.Node objects can set context')
+        ptr = <cpp.XdmItem*>it.thisptr
+        self.thisptr.setContextItem(ptr)
 
     def setContextFile(self, char *filename):
         """Set the context item from file."""
@@ -269,7 +282,7 @@ cdef class XPathProcessor:
 
     def setParameter(self, char *name, Value val):
         """Set a parameter value used in the query."""
-        self.thisptr.setParameter(name, val.thisptr)
+        self.thisptr.setParameter(name, <cpp.XdmValue*>val.thisptr)
 
     def removeParameter(self, char *name):
         """Remove a parameter named ``name``."""
@@ -396,7 +409,7 @@ cdef class XsltProcessor:
     def setSourceFromXdmValue(self, Item val):
         """Set the source document from a xdm.Item object for the
         transformation."""
-        self.thisptr.setSourceFromXdmValue(val.thisptr)
+        self.thisptr.setSourceFromXdmValue(<cpp.XdmItem*>val.thisptr)
 
     def setSourceFromFile(self, char *filename):
         """Set the source from file for the transformation."""
@@ -470,7 +483,7 @@ cdef class XsltProcessor:
 
     def compileFromXdmNode(self, Node n not None):
         """Compile a stylesheet stored in an xdm.Node."""
-        self.thisptr.compileFromXdmNode(n.thisptr)
+        self.thisptr.compileFromXdmNode(<cpp.XdmNode*>n.thisptr)
 
     def transformToString(self):
         """Perform the transformation based upon what has been cached and
