@@ -1,2 +1,2 @@
 """Define package version identifier"""
-version = '0.0.1a0'
+VERSION = '0.2.0'
