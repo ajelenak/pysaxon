@@ -1,102 +1,98 @@
-from __future__ import print_function, unicode_literals
+"""PySaxon setup script"""
 import os
-import sys
-import os.path as osp
-from functools import reduce
-from setuptools import setup, Extension  # , Command
-from setuptools.command.test import test
+from pathlib import Path
+from distutils.command.build_ext import build_ext
+from distutils.command.build import build
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 from pysaxon import __version__ as VERSION
 
 
-def localpath(*args):
-    """Generate absolute path from arguments in ``args`` using this file as the
-    reference.
-    """
-    return osp.abspath(reduce(osp.join, (osp.dirname(__file__),) + args))
-
-
-def extensions():
-    # List of Cython implementation files (without file extension)...
-    modules = ['sxn', 'xdm']
-
-    # Get home directories for Java and Saxon/C...
-    saxonhome = os.environ.get('SAXONC_HOME')
-    javahome = os.environ.get('JAVA_HOME')
-    if not all((saxonhome, javahome)):
-        raise ValueError('SAXONC_HOME and/or JAVA_HOME not set')
+def extensions(saxon_top_dir):
+    """List of Cython implementation files (without file extension)"""
+    top_path = Path(saxon_top_dir)
+    if not top_path.is_dir():
+        raise OSError(top_path.resolve(), ': Not a directory')
 
     # Compiler settings...
     settings = {
-        'libraries': ['saxonhec'],
-        'include_dirs': [osp.join(saxonhome, 'Saxon.C.API'),
-                         osp.join(javahome, 'include')],
-        'library_dirs': [saxonhome, '/usr/lib']
+        'include_dirs': [str(top_path.joinpath('Saxon.C.API')),
+                         str(top_path.joinpath('Saxon.C.API', 'jni')),
+                         str(top_path.joinpath('Saxon.C.API', 'jni', 'unix'))],
     }
-    if sys.platform.startswith('linux'):
-        settings['include_dirs'].append(osp.join(javahome, 'include', 'linux'))
-    else:
-        raise NotImplemented(sys.platform, 'not supported yet')
 
-    # See: http://stackoverflow.com/q/19123623
-    if os.name != 'nt':
-        settings['runtime_library_dirs'] = settings['library_dirs']
-
-    # Additional source files required...
-    addl_src = ['SaxonCGlue.c', 'SaxonCXPath.c', 'XdmValue.cpp',
-                'XdmItem.cpp', 'XdmNode.cpp', 'XdmAtomicValue.cpp',
-                'SaxonProcessor.cpp', 'XsltProcessor.cpp',
-                'XQueryProcessor.cpp', 'XPathProcessor.cpp',
+    # Additional Saxon source files required...
+    addl_src = ['SaxonProcessor.cpp',
+                'SaxonCGlue.c',
+                'SaxonCXPath.c',
+                'XdmValue.cpp',
+                'XdmItem.cpp',
+                'XdmNode.cpp',
+                'XdmAtomicValue.cpp',
+                'XsltProcessor.cpp',
+                'Xslt30Processor.cpp',
+                'XQueryProcessor.cpp',
+                'XPathProcessor.cpp',
                 'SchemaValidator.cpp']
-    for n in range(len(addl_src)):
-        addl_src[n] = osp.join(saxonhome, 'Saxon.C.API', addl_src[n])
-        if not osp.isfile(addl_src[n]):
-            raise IOError('"%s" file not found' % addl_src[n])
+    for n, src in enumerate(addl_src):
+        src_file = top_path.joinpath('Saxon.C.API', src)
+        if not src_file.is_file():
+            raise OSError('"%s" file not found' % str(addl_src[n]))
+        addl_src[n] = str(src_file)
 
     exts = list()
+    modules = ['saxonc']
     for m in modules:
-        pyx_src = localpath('pysaxon', m + '.pyx')
-        exts.append(Extension('pysaxon.' + m, [pyx_src] + addl_src,
+        pyx_src = top_path.joinpath('Saxon.C.API', 'python-saxon', m + '.pyx')
+        exts.append(Extension('pysaxon.' + m, [str(pyx_src)] + addl_src,
                               language='c++', **settings))
 
-    return cythonize(exts)
+    return exts
 
+class PySaxonBuild(build):
+    """Custom build_py command that takes command-line arguments"""
 
-class sxn_test(test):
-    """Custom setuptools test command using py.test."""
-    description = 'Options for py.test command'
-    user_options = [('pytest-opts=', 'a', 'Options to pass to py.test')]
+    description = 'PySaxon custom build_py command'
+
+    user_options = build.user_options
+    user_options.extend([('saxon-install=', None, 'Saxon C install folder')])
 
     def initialize_options(self):
-        self.pytest_opts = []
+        """Initialize command-line options"""
+        build.initialize_options(self)
+        self.saxon_install = os.environ.get('SAXONC_HOME')
 
     def finalize_options(self):
-        pass
+        """Check custom command-line options"""
+        build.finalize_options(self)
+        if self.saxon_install is None:
+            raise ValueError('Missing Saxon C install folder')
 
     def run(self):
-        import pytest
-        import _pytest.main
+        """Build PySaxon package"""
+        sax_api = Path(self.saxon_install).joinpath('Saxon.C.API').resolve()
+        if not sax_api.is_dir():
+            raise OSError(
+                '{}: Not a folder or does not exist'.format(str(sax_api)))
+        build.run(self)
 
-        # Customize messages for pytest exit codes...
-        msg = {_pytest.main.EXIT_OK: 'OK',
-               _pytest.main.EXIT_TESTSFAILED: 'Tests failed',
-               _pytest.main.EXIT_INTERRUPTED: 'Interrupted',
-               _pytest.main.EXIT_INTERNALERROR: 'Internal error',
-               _pytest.main.EXIT_USAGEERROR: 'Usage error',
-               _pytest.main.EXIT_NOTESTSCOLLECTED: 'No tests collected'}
 
-        bldobj = self.distribution.get_command_obj('build')
-        bldobj.run()
-        exitcode = pytest.main(self.pytest_opts)
-        print(msg[exitcode])
-        sys.exit(exitcode)
+class BuildSaxonExt(build_ext):
+    """Custom build_ext command"""
+
+    description = 'Build Python extension module for Saxon C library'
+
+    def run(self):
+        """Build Saxon extension module"""
+        bld = self.distribution.get_command_obj('build')
+        self.extensions = cythonize(extensions(bld.saxon_install))
+        build_ext.run(self)
 
 
 setup(
     name='PySaxon',
     version=VERSION,
-    description=('Python interface to the Saxon-HE/C XML document processor '
-                 'C++ library'),
+    description=('Python package for the Saxon-HE/C XML document processor'),
     # long_description='',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -114,11 +110,11 @@ setup(
     # url = '',
     # download_url = '',
     packages=['pysaxon'],
-    # package_data = package_data,
-    ext_modules=extensions(),
-    install_requires=['six'],
-    setup_requires=['Cython>=0.20', 'six'],
-    tests_require=['pytest', 'six'],
-    cmdclass={'test': sxn_test},
-    zip_safe=False
+    ext_modules=[Extension('pysaxon.foo', ['foo.c'])],  # Force build to run build_ext
+    python_requires='>=3.6',
+    setup_requires=['Cython>=0.25'],
+    tests_require=['pytest'],
+    zip_safe=False,
+    cmdclass={'build': PySaxonBuild,
+              'build_ext': BuildSaxonExt}
 )
